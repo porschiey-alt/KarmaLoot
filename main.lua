@@ -528,6 +528,7 @@ function MinimapButton:OnClick(button)
 		frameHidden = true;
 	else
 		updateRaidList(true);
+		karmaFrame:Show();
 		frameHidden = false;
 	end
 end
