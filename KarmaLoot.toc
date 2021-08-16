@@ -1,0 +1,6 @@
+## Interface: 20501
+## Title: Karma Loot
+## Author: Brandon
+## Version: 1.0
+
+karma.xml
