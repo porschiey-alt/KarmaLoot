@@ -7,6 +7,8 @@ local currentPlayer = {};
 local initialized = false;
 local frameReady = false;
 local frameHidden = false;
+local mmHidden = false;
+local rollMsg = "KL: Please roll on "
 
 classColors = { 
     deathKnight = { r = .77, g = .12, b = .23, hex = "C41F3B" },
@@ -262,9 +264,14 @@ function karma_OnEvent(self, event, ...)
         end
 		if event == "CHAT_MSG_RAID_WARNING" then
 			local msg, author, language, channel = ...
-			if string.find(msg, "Please roll on") then
-				frameHidden = false;
-				karmaFrame:Show();
+			if string.find(msg, rollMsg) then
+				msg = msg:gsub(rollMsg, "")
+				msg = msg:gsub(" with Karma.", "")
+				local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
+				if itemId then
+					frameHidden = false;
+					updateRaidList(true)
+				end
 			end
 		end
     end
@@ -485,66 +492,6 @@ local function klwin(msg)
     SendChatMessage(chatMsg, "RAID");
 end
 
--- The /kl command. Primary CLI entry point. Serves several sub commands.
-local function slashKl(msg)
-    if not msg or msg == '' then
-        print("|cFF00FF96KarmaLoot! |cFFAAAAAAUse /KL ? to list options.");
-    end
-    if msg == 'roll' then
-        kRoll();
-    end
-    if msg == '?' then
-        print("|cFF00FF96KarmaLoot!|cFFAAAAAA Here's a list of options:");
-        print('|cFF00FF96/kl|cFFFFFFFF roll |cFFAAAAAA - perform an infused roll.');
-        print('|cFF00FF96/kl|cFFFFFFFF show |cFFAAAAAA - Show the current raid\'s karma leaderboard.');
-        print('|cFF00FF96/kl|cFFFFFFFF hide |cFFAAAAAA - Hide the raid leaderboard.');
-        print('|cFF00FF96/kl|cFFFFFFFF check |cFFAAAAAA - Check your own Karma status.');
-        print('|cFFFFFFFF - Officer commands: ');
-        print('|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.');
-        print('|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.');
-        print('|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.');
-	print('|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE] Prompts the raid to roll on an item and unhides their KL GUI.');
-    end
-    if msg == 'check' then
-        loadMemberKarma(false);
-        print('You currently have ' ..tostring(currentPlayer.karma) ..' karma to infuse.');
-    end
-    if msg == 'refresh' then
-        loadMemberKarma(true);
-    end
-
-    if msg == 'hide' then 
-        frameHidden = true;
-        karmaFrame:Hide();
-    end
-    if msg == 'show' then
-        frameHidden = false;
-        updateRaidList(true);
-    end
-
-    local parts = strSplit(msg);
-    local cmd = parts[1];
-
-    if cmd == 'earn' then
-        klEarn(parts[2]);
-    end
-
-    if cmd == 'set' then
-        klSet(msg);
-    end
-
-    if cmd == 'win' then
-        klwin(parts[2]);
-    end
-	
-	local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
-	if itemId then
-		local chatMsg = 'Please roll on ' .. msg .. ' with Karma.';
-		SendChatMessage(chatMsg, "RAID_WARNING");
-	end
-end
-
-
 -- Adds a minimap button to hide/show the frame. Need to figure out how to make the icon draggable, but will probably add a command to hide the button in the meantime.
 local MinimapButton = CreateFrame('Button', "MainMenuBarToggler", Minimap)
 
@@ -580,12 +527,87 @@ function MinimapButton:OnClick(button)
         karmaFrame:Hide();
 		frameHidden = true;
 	else
-		karmaFrame:Show();
+		updateRaidList(true);
 		frameHidden = false;
 	end
 end
 
 MinimapButton:Load()
+
+-- The /kl command. Primary CLI entry point. Serves several sub commands.
+local function slashKl(msg)
+    if not msg or msg == '' then
+        print("|cFF00FF96KarmaLoot! |cFFAAAAAAUse /KL ? to list options.");
+    end
+    if msg == 'roll' then
+        kRoll();
+    end
+    if msg == '?' then
+        print("|cFF00FF96KarmaLoot!|cFFAAAAAA Here's a list of options:");
+        print('|cFF00FF96/kl|cFFFFFFFF roll |cFFAAAAAA - perform an infused roll.');
+        print('|cFF00FF96/kl|cFFFFFFFF show |cFFAAAAAA - Show the current raid\'s karma leaderboard.');
+        print('|cFF00FF96/kl|cFFFFFFFF hide |cFFAAAAAA - Hide the raid leaderboard.');
+        print('|cFF00FF96/kl|cFFFFFFFF check |cFFAAAAAA - Check your own Karma status.');
+        print('|cFFFFFFFF - Officer commands: ');
+        print('|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.');
+        print('|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.');
+        print('|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.');
+		print('|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmshow |cFFAAAAAA - Shows the minimap button.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmhide |cFFAAAAAA - Hides the minimap button.');
+    end
+    if msg == 'check' then
+        loadMemberKarma(false);
+        print('You currently have ' ..tostring(currentPlayer.karma) ..' karma to infuse.');
+    end
+    if msg == 'refresh' then
+        loadMemberKarma(true);
+    end
+
+    if msg == 'hide' then 
+        frameHidden = true;
+        karmaFrame:Hide();
+    end
+    if msg == 'show' then
+        frameHidden = false;
+        updateRaidList(true);
+    end
+
+    local parts = strSplit(msg);
+    local cmd = parts[1];
+
+    if cmd == 'earn' then
+        klEarn(parts[2]);
+    end
+
+    if cmd == 'set' then
+        klSet(msg);
+    end
+
+    if cmd == 'win' then
+        klwin(parts[2]);
+    end
+	
+	local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
+	if itemId then
+		local chatMsg = rollMsg .. msg .. ' with Karma.';
+		SendChatMessage(chatMsg, "RAID_WARNING");
+	end
+	
+	if cmd == 'mmhide' then
+		MinimapButton:Hide();
+		mmHidden = true;
+	end
+	
+	if cmd == 'mmshow' then
+		MinimapButton:Show();
+		mmHidden = false;
+	end
+		
+end
+
+
+
 
 SLASH_KLENTRY1, SLASH_KLENTRY2 = '/kl', '/karmaloot'
 SLASH_KLROLL1, SLASH_KLROLL2  = '/kroll', '/klroll'
