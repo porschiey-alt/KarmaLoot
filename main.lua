@@ -1,3 +1,6 @@
+-- Set to false if you don't want to scold people for /rolling with arbitrary values.
+local scolding = true;
+
 local memberKarma = {};
 local currentRaidKarma = {};
 local memberRowHeight = 10;
@@ -8,7 +11,13 @@ local initialized = false;
 local frameReady = false;
 local frameHidden = false;
 local mmHidden = false;
-local rollMsg = "KL: Please roll on "
+local rollMsg = "KL: Please roll on ";
+local rollsOpen = false;
+local highestRoll = 0;
+local highestRoller = '';
+local rollers = {};
+local deadlock = false;
+local item
 
 classColors = { 
     deathKnight = { r = .77, g = .12, b = .23, hex = "C41F3B" },
@@ -62,6 +71,7 @@ function karma_OnLoad(self, event,...)
     self:RegisterEvent("GUILD_ROSTER_UPDATE");
     self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("CHAT_MSG_RAID_WARNING");
+	self:RegisterEvent("CHAT_MSG_SYSTEM");
 end
 
 local function klSay(msg) 
@@ -199,7 +209,8 @@ local function updateRaidList(printErrorOnNoRaid)
             if fullName == currentPlayer.name then 
                 numberColor = '00FF00';
             end
-            raidListText = strtrim(raidListText ..'|cFF' .. numberColor ..tostring(member.karma) ..' - |cFF'.. classColors[member.class:lower()].hex ..member.name ..'\n', "\t\r");
+            raidListText = strtrim(raidListText .. '|cFF' .. numberColor .. tostring(member.karma) .. ' - |cFF' .. classColors[member.class:lower()].hex ..member.name .. '\n', "\t\r");
+
         end
 
         raidListFont:SetText(raidListText);
@@ -263,7 +274,7 @@ function karma_OnEvent(self, event, ...)
             updateRaidList();
         end
 		if event == "CHAT_MSG_RAID_WARNING" then
-			local msg, author, language, channel = ...
+			local msg, author, language, channel = ...;
 			if string.find(msg, rollMsg) then
 				msg = msg:gsub(rollMsg, "")
 				msg = msg:gsub(" with Karma.", "")
@@ -271,6 +282,61 @@ function karma_OnEvent(self, event, ...)
 				if itemId then
 					frameHidden = false;
 					updateRaidList(true)
+				end
+			end
+		end
+		
+		-- Handle rolls
+		if event == "CHAT_MSG_SYSTEM" then
+			noDuplicates = true;
+			if rollsOpen == true then
+				local msg= ...;
+				local author, rollResult, rollMin, rollMax = string.match(msg, "(.+) rolls (%d+) %((%d+)-(%d+)%)")
+				local winnerIndex = findPlayerRosterIx(author);
+				if winnerIndex == -1 then
+					print('Could not find player by name: ' ..author);
+					return;
+				end    
+				local currentK = getKarma(winnerIndex);
+				
+				-- Make sure rolls are legit
+				
+				if rollers ~= {} then 
+					for k, v in pairs(rollers) do
+						if v == author then
+							noDuplicates = false;
+							break;
+						end
+					end
+				end
+				table.insert(rollers, author)
+				if noDuplicates then
+					if tonumber(rollMin) == tonumber(currentK) and tonumber(rollMax) == tonumber(currentK) + 100 then
+						if tonumber(rollResult) > highestRoll then
+							deadlock = false;
+							highestRoll = tonumber(rollResult);
+							highestRoller = author;
+						elseif tonumber(rollResult) == highestRoll then
+							deadlock = true;
+							highestRoller = highestRoller .. ', ' .. author
+						end
+					elseif tonumber(rollMin) ~= 1 and tonumber(rollMax) ~= 100 then
+						if UnitIsGroupLeader("Player", LE_PARTY_CATEGORY_HOME) then
+							if scolding then
+								local chatMsg = "Please don't attempt to use fake values when we are rolling for gear."
+								SendChatMessage(chatMsg, "WHISPER", nil, author);
+							end
+						end
+					else
+						if tonumber(rollResult) > highestRoll then
+							deadlock = false;
+							highestRoll = tonumber(rollResult);
+							highestRoller = author;
+						elseif tonumber(rollResult) == highestRoll then
+							deadlock = true;
+							highestRoller = highestRoller .. ', ' .. author
+						end
+					end
 				end
 			end
 		end
@@ -549,13 +615,14 @@ local function slashKl(msg)
         print('|cFF00FF96/kl|cFFFFFFFF show |cFFAAAAAA - Show the current raid\'s karma leaderboard.');
         print('|cFF00FF96/kl|cFFFFFFFF hide |cFFAAAAAA - Hide the raid leaderboard.');
         print('|cFF00FF96/kl|cFFFFFFFF check |cFFAAAAAA - Check your own Karma status.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmshow |cFFAAAAAA - Shows the minimap button.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmhide |cFFAAAAAA - Hides the minimap button.');
         print('|cFFFFFFFF - Officer commands: ');
         print('|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.');
         print('|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.');
         print('|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.');
 		print('|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.');
-		print('|cFF00FF96/kl|cFFFFFFFF mmshow |cFFAAAAAA - Shows the minimap button.');
-		print('|cFF00FF96/kl|cFFFFFFFF mmhide |cFFAAAAAA - Hides the minimap button.');
+
     end
     if msg == 'check' then
         loadMemberKarma(false);
@@ -592,8 +659,30 @@ local function slashKl(msg)
 	local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
 	if itemId then
 		local chatMsg = rollMsg .. msg .. ' with Karma.';
+		item = msg;
 		SendChatMessage(chatMsg, "RAID_WARNING");
+		rollsOpen = true;
 	end
+	
+	if cmd == 'close' then
+		if deadlock == true then
+			local chatMsg = highestRoller .. ' had the same roll! Please reroll!'
+			SendChatMessage(chatMsg, "RAID_WARNING");
+			highestRoll = 0;
+			highestRoller = '';
+			rollers = {};
+		elseif highestRoll == 0 then
+			local chatMsg = "KL: Nobody used their Karma! Please free roll for " .. item .. "."
+			SendChatMessage(chatMsg, "RAID_WARNING");
+		else
+			rollsOpen = false;
+			local chatMsg = highestRoller .. ' has won ' .. item .. ' with a roll of ' .. highestRoll .. '!'
+			SendChatMessage(chatMsg, "RAID_WARNING");
+			highestRoll = 0;
+			highestRoller = '';
+			rollers = {};
+		end
+	end		
 	
 	if cmd == 'mmhide' then
 		MinimapButton:Hide();
