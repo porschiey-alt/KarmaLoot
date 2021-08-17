@@ -755,18 +755,6 @@ local function slashKl(msg)
 			print("You need to be in a raid to use this command.")
 		end
     end
-	
-	if cmd == "test" then
-		local itemFrame = MasterLooterFrame.Item;
-		itemFrame.ItemName:SetText(LootFrame.selectedItemName);
-		itemFrame.Icon:SetTexture(LootFrame.selectedTexture);
-		local colorInfo = ITEM_QUALITY_COLORS[LootFrame.selectedQuality];
-		itemFrame.IconBorder:SetVertexColor(colorInfo.r, colorInfo.g, colorInfo.b);
-		itemFrame.ItemName:SetVertexColor(colorInfo.r, colorInfo.g, colorInfo.b);
-		MasterLooterFrame:Show();
-		MasterLooterFrame_UpdatePlayers();
-		MasterLooterFrame:SetPoint("TOPLEFT", DropDownList1, 0, 0);
-	end
 end
 
 SLASH_KLENTRY1, SLASH_KLENTRY2 = "/kl", "/karmaloot"
