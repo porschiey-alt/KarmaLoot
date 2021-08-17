@@ -20,7 +20,7 @@ local deadlock = false;
 local item
 
 classColors = { 
-    deathKnight = { r = .77, g = .12, b = .23, hex = "C41F3B" },
+    deathknight = { r = .77, g = .12, b = .23, hex = "C41F3B" },
     druid = {r = 1, g = .49, b = .04, hex = "FF7D0A" },
     hunter = {r = .67, g = .83, b = .45, hex = "ABD473"},
     mage = { r = .41, g = .80, b = .94, hex = "69CCF0" },
@@ -209,7 +209,7 @@ local function updateRaidList(printErrorOnNoRaid)
             if fullName == currentPlayer.name then 
                 numberColor = '00FF00';
             end
-            raidListText = strtrim(raidListText .. '|cFF' .. numberColor .. tostring(member.karma) .. ' - |cFF' .. classColors[member.class:lower()].hex ..member.name .. '\n', "\t\r");
+            raidListText = raidListText ..'|cFF' .. numberColor ..tostring(member.karma) ..'|r - |cFF'.. classColors[member.class:lower()].hex ..member.name ..'\n|r';
 
         end
 
