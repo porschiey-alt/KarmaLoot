@@ -7,6 +7,8 @@ local currentPlayer = {};
 local initialized = false;
 local frameReady = false;
 local frameHidden = false;
+local mmHidden = false;
+local rollMsg = "KL: Please roll on "
 
 classColors = { 
     deathKnight = { r = .77, g = .12, b = .23, hex = "C41F3B" },
@@ -59,6 +61,7 @@ function karma_OnLoad(self, event,...)
     self:RegisterEvent("CHAT_MSG_ADDON");
     self:RegisterEvent("GUILD_ROSTER_UPDATE");
     self:RegisterEvent("GROUP_ROSTER_UPDATE");
+	self:RegisterEvent("CHAT_MSG_RAID_WARNING");
 end
 
 local function klSay(msg) 
@@ -259,6 +262,18 @@ function karma_OnEvent(self, event, ...)
             loadMemberKarma();
             updateRaidList();
         end
+		if event == "CHAT_MSG_RAID_WARNING" then
+			local msg, author, language, channel = ...
+			if string.find(msg, rollMsg) then
+				msg = msg:gsub(rollMsg, "")
+				msg = msg:gsub(" with Karma.", "")
+				local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
+				if itemId then
+					frameHidden = false;
+					updateRaidList(true)
+				end
+			end
+		end
     end
 end
 
@@ -363,6 +378,7 @@ local function main()
     optPassButton:SetScript("OnLeave", function() 
         toolTip:Hide();
     end);
+		
 end
 
 -- WoW API apparently returns that no one is in the guild right after you login. This method attempts 40 times to check/wait for the Guild in-game APIs to be ready. 
@@ -476,6 +492,49 @@ local function klwin(msg)
     SendChatMessage(chatMsg, "RAID");
 end
 
+-- Adds a minimap button to hide/show the frame. Need to figure out how to make the icon draggable, but will probably add a command to hide the button in the meantime.
+local MinimapButton = CreateFrame('Button', "MainMenuBarToggler", Minimap)
+
+function MinimapButton:Load()
+    self:SetFrameStrata('HIGH')
+    self:SetWidth(31)
+    self:SetHeight(31)
+    self:SetFrameLevel(8)
+    self:RegisterForClicks('anyUp')
+    self:SetHighlightTexture('Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight')
+
+    local overlay = self:CreateTexture(nil, 'OVERLAY')
+    overlay:SetWidth(53)
+    overlay:SetHeight(53)
+    overlay:SetTexture('Interface\\Minimap\\MiniMap-TrackingBorder')
+    overlay:SetPoint('TOPLEFT')
+
+    local icon = self:CreateTexture(nil, 'BACKGROUND')
+    icon:SetWidth(20)
+    icon:SetHeight(20)
+    icon:SetTexture("Interface/Buttons/UI-GroupLoot-Dice-Up")
+    icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
+    icon:SetPoint('TOPLEFT', 7, -5)
+    self.icon = icon
+
+    self:SetScript('OnClick', self.OnClick)
+
+    self:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -2, 2)
+end
+     
+function MinimapButton:OnClick(button)
+    if button == 'LeftButton' and frameHidden == false then
+        karmaFrame:Hide();
+		frameHidden = true;
+	else
+		updateRaidList(true);
+		karmaFrame:Show();
+		frameHidden = false;
+	end
+end
+
+MinimapButton:Load()
+
 -- The /kl command. Primary CLI entry point. Serves several sub commands.
 local function slashKl(msg)
     if not msg or msg == '' then
@@ -494,6 +553,9 @@ local function slashKl(msg)
         print('|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.');
         print('|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.');
         print('|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.');
+		print('|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmshow |cFFAAAAAA - Shows the minimap button.');
+		print('|cFF00FF96/kl|cFFFFFFFF mmhide |cFFAAAAAA - Hides the minimap button.');
     end
     if msg == 'check' then
         loadMemberKarma(false);
@@ -526,7 +588,27 @@ local function slashKl(msg)
     if cmd == 'win' then
         klwin(parts[2]);
     end
+	
+	local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
+	if itemId then
+		local chatMsg = rollMsg .. msg .. ' with Karma.';
+		SendChatMessage(chatMsg, "RAID_WARNING");
+	end
+	
+	if cmd == 'mmhide' then
+		MinimapButton:Hide();
+		mmHidden = true;
+	end
+	
+	if cmd == 'mmshow' then
+		MinimapButton:Show();
+		mmHidden = false;
+	end
+		
 end
+
+
+
 
 SLASH_KLENTRY1, SLASH_KLENTRY2 = '/kl', '/karmaloot'
 SLASH_KLROLL1, SLASH_KLROLL2  = '/kroll', '/klroll'
