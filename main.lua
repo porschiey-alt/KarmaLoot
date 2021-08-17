@@ -199,7 +199,7 @@ local function updateRaidList(printErrorOnNoRaid)
             if fullName == currentPlayer.name then 
                 numberColor = '00FF00';
             end
-            raidListText = raidListText ..'|cFF' .. numberColor ..tostring(member.karma) ..' - |cFF'.. classColors[member.class:lower()].hex ..member.name ..'\n|r';
+            raidListText = raidListText ..'|cFF' .. numberColor ..tostring(member.karma) ..'|r - |cFF'.. classColors[member.class:lower()].hex ..member.name ..'\n|r';
         end
 
         raidListFont:SetText(raidListText);
