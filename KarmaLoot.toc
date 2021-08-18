@@ -1,6 +1,7 @@
 ## Interface: 20501
-## Title: Karma Loot
+## Title: KarmaLoot
 ## Author: Brandon
-## Version: 1.0
+## Version: 1.4
+## SavedVariablesPerCharacter: KL_Karma_Backup
 
 karma.xml
