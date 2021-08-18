@@ -1,6 +1,6 @@
 ## Interface: 20501
 ## Title: KarmaLoot
-## Author: Brandon
+## Author: Refúge-Whitemane and Fyfor-Whitemane
 ## Version: 1.4
 ## SavedVariablesPerCharacter: KL_Karma_Backup
 
