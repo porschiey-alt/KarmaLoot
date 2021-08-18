@@ -1,8 +1,7 @@
-local version = "1.4"
-
 -- Set to false if you don't want to scold people for /rolling with arbitrary values.
 local scolding = true
 
+local version = GetAddOnMetadata("KarmaLoot", "Version")
 local memberKarma = {}
 local currentRaidKarma = {}
 local memberRowHeight = 10
@@ -22,6 +21,10 @@ local deadlock = false
 local item
 local success = C_ChatInfo.RegisterAddonMessagePrefix("KarmaLoot") -- Addon name.
 local allRaidersTable = {}
+local backupData = {}
+local restoreConfirm = false
+
+KL_Karma_Backup = {}
 
 classColors = {
     deathknight = {r = .77, g = .12, b = .23, hex = "C41F3B"},
@@ -76,6 +79,7 @@ function karma_OnLoad(self, event, ...)
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("CHAT_MSG_RAID_WARNING")
     self:RegisterEvent("CHAT_MSG_SYSTEM")
+	self:RegisterEvent("PLAYER_LOGOUT")
 end
 
 local function klSay(msg)
@@ -244,6 +248,20 @@ local function displayPassMsg(playerName)
     print("|cFFFFFF00" .. playerName .. " passed on loot.|cFFFFFFFF")
 end
 
+-- Get class color from name and return the hex code to change the color of said name.
+local function prependClassColor(playerName)
+	local playerClass = UnitClass(playerName)
+	local classColor = "|cff" .. classColors[playerClass:lower()].hex .. playerName .. "|r"
+	return classColor
+end
+
+local function getNameAndOfficerNote(index)
+	local name, rank, rankIndex, level, class, zone, note, officerNote = GetGuildRosterInfo(index)
+	if officerNote ~= "k:0" then
+		return name .. "," .. officerNote
+	end
+end
+
 -- events
 function karma_OnEvent(self, event, ...)
     local data = ...
@@ -340,9 +358,9 @@ function karma_OnEvent(self, event, ...)
                 end
             end
         end
-        if event == "CHAT_MSG_ADDON" then
-            realmName = "-" .. GetRealmName()
+        if event == "CHAT_MSG_ADDON" then            
             local prefix, msg, type, sender = ...
+			realmName = "-" .. GetRealmName()			
 
             if msg == "Version?" then
                 C_ChatInfo.SendAddonMessage("KarmaLoot", version, "RAID")
@@ -358,6 +376,30 @@ function karma_OnEvent(self, event, ...)
                 end
             end
         end
+		
+		-- Automatically saves a backup of all karma that isn't 0
+		if event == "PLAYER_LOGOUT" then
+			local backupDate = date("%m" .. "%d" .. "%y")
+			backupData[backupDate] = {}
+			for i = 1, GetNumGuildMembers(), 1 do			
+				local result = getNameAndOfficerNote(i)
+				if result ~= nil then
+					local name, officerNote = result:match("([^,]+),([^,]+)")				
+					table.insert(backupData[backupDate], result)
+				end
+			end
+			local duplicates = false
+			for k1, v1 in pairs(KL_Karma_Backup) do
+				for k2, v2 in pairs(v1) do
+					if backupDate == k2 then
+						duplicates = true
+					end
+				end
+			end
+			if duplicates == false then
+				table.insert(KL_Karma_Backup, backupData)
+			end
+		end
     end
 end
 
@@ -658,12 +700,9 @@ local function slashKl(msg)
         print("|cFFFFFFFF - Officer commands: ")
         print("|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.")
         print("|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.")
-        print(
-        "|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma."
-        )
-        print(
-        "|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI."
-        )
+        print("|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.")
+        print("|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.")
+		print("|cFF00FF96/kl|cFFFFFFFF backups|cFFAAAAAA - Prints a list of backup dates to be used for easy karma restoration.")
     end
     if msg == "check" then
         loadMemberKarma(false)
@@ -695,6 +734,7 @@ local function slashKl(msg)
 
     if cmd == "win" then
         klwin(parts[2])
+		print(parts[2])
     end
 
     local itemId, _, _, _, _, _, _ = GetItemInfoInstant(msg)
@@ -706,22 +746,24 @@ local function slashKl(msg)
     end
 
     if cmd == "close" then
-        if deadlock == true then
+        if deadlock == true and rollsOpen == true then
             local chatMsg = highestRoller .. " had the same roll! Please reroll!"
             SendChatMessage(chatMsg, "RAID_WARNING")
             highestRoll = 0
             highestRoller = ""
             rollers = {}
-        elseif highestRoll == 0 then
+        elseif highestRoll == 0 and rollsOpen == true then
             local chatMsg = "KL: Nobody used their Karma! Please free roll for " .. item .. "."
             SendChatMessage(chatMsg, "RAID_WARNING")
-        else
+        elseif rollsOpen == true then
             rollsOpen = false
             local chatMsg = highestRoller .. " has won " .. item .. " with a roll of " .. highestRoll .. "!"
             SendChatMessage(chatMsg, "RAID_WARNING")
             highestRoll = 0
             highestRoller = ""
             rollers = {}
+		else
+			print("There's nothing to close.")
         end
     end
 
@@ -734,7 +776,7 @@ local function slashKl(msg)
         MinimapButton:Show()
         mmHidden = false
     end
-
+	-- Check versions of other members in your current raid.
     if cmd == "-v" then
 		if IsInRaid() then
 			for i = 1, GetNumGroupMembers(), 1 do
@@ -747,6 +789,9 @@ local function slashKl(msg)
 			if table.concat(allRaidersTable) == '' then
 				print("Everyone is up to date!")
 			else
+				for k, v in pairs(allRaidersTable) do
+					allRaidersTable[k] = prependClassColor(v)
+				end
 				print("The following players are out of date or do not have the addon installed:\n" .. table.concat(allRaidersTable, '\n'))
 				allRaidersTable = {}
 			end
@@ -755,12 +800,63 @@ local function slashKl(msg)
 			print("You need to be in a raid to use this command.")
 		end
     end
+	
+	-- Check dates for latest backups. Useful for backup restoration command.
+	if cmd == "backups" then
+		local backups = {}
+		local length = 0
+		for k1, v1 in pairs(KL_Karma_Backup) do
+			for k, _ in pairs(v1) do
+				table.insert(backups, k)
+			end
+		end
+		
+		for _, _ in pairs(backups) do
+			length = length + 1
+		end
+		for i = length, 5 + 1, -1 do
+			backups[i] = nil
+		end
+		print("Latest 5 backup dates: " .. table.concat(backups, ", ") .. "\nIf you need to restore a backup, use the |cffffa500'/klrestore DDMMYY'|r command.")
+	end
+
+end
+-- Takes a date argument and finds the respective karma backup, then restores it.
+local function klRestore(msg)
+	if currentPlayer.rankIx > 1 then
+        print("You are not an Officer.")
+        return
+    end
+	local index1 = 0
+	local index2 = 0
+    if msg then
+		for k, v in pairs(KL_Karma_Backup) do
+			for k2, v2 in pairs(v) do
+				if k2 == msg then
+					index1, index2 = k, k2
+					break
+				end
+			end
+		end
+		for k, v in pairs(KL_Karma_Backup[index1][index2]) do
+			local name, officerNote = v:match("([^,]+),([^,]+)")
+			local memberIndex = 0
+			for i = 1, GetNumGuildMembers(), 1 do
+				if name == GetGuildRosterInfo(i) then
+					memberIndex = i
+				end
+			end			
+			GuildRosterSetOfficerNote(memberIndex, officerNote)
+		end
+	end
 end
 
 SLASH_KLENTRY1, SLASH_KLENTRY2 = "/kl", "/karmaloot"
 SLASH_KLROLL1, SLASH_KLROLL2 = "/kroll", "/klroll"
+SLASH_KLRESTORE1 = "/klrestore"
 
 SlashCmdList["KLENTRY"] = slashKl
 SlashCmdList["KLROLL"] = kRoll
+SlashCmdList["KLRESTORE"] = klRestore
 
 C_Timer.After(20, init)
