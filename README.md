@@ -31,6 +31,7 @@
 * Fully featured minimap button
 * Roll handling
 * Full Karma backup/restoration system
+* Raid-wide version checking
 
 ### Fixed
 * Text color issue in leaderboard
