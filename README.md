@@ -24,7 +24,7 @@
 * /kl -v: Check the versions of everyone in a raid and see who's slacking.<br>
 * /klrestore DDMMYY: Restore Karma from a backup.
 
-## [1.4.0] - 2021-08-20
+## [1.4] - 2021-08-20
  
 ### Added
 * Loot rolling frame
