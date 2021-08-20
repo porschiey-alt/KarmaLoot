@@ -1,6 +1,7 @@
 ## Interface: 20501
-## Title: Karma Loot
-## Author: Brandon
-## Version: 1.0
+## Title: KarmaLoot
+## Author: Refúge-Whitemane and Fyfor-Whitemane
+## Version: 1.4
+## SavedVariablesPerCharacter: KL_Karma_Backup, KL_Settings
 
 karma.xml
