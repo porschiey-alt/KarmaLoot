@@ -40,10 +40,22 @@ classColors = {
     warrior = {r = .78, g = .61, b = .43, hex = "C79C6E"}
 }
 
+qualityColors = {
+    poor = {r = .62, g = .62, b = .62, hex = "9D9D9D"},
+    common = {r = 1, g = 1, b = 1, hex = "FFFFFF"},
+    uncommon = {r = .12, g = 1, b = 0, hex = "1EFF00"},
+    rare = {r = 0, g = .44, b = .87, hex = "0070DD"},
+    epic = {r = .64, g = .21, b = .93, hex = "A335EE"},
+    legendary = {r = 1, g = .5, b = 0, hex = "FF8000"},
+    artifact = {r = .9, g = .8, b = .5, hex = "E6CC80"},
+    heirloom = {r = 0, g = .8, b = 1, hex = "00CCFF"},
+}
+
 KL_Karma_Backup = {}
 KL_Settings = {
     MinimapPos = 45,
     FramePosRelativePoint = "CENTER",
+    FramePosRelativeParent = "UIParent",
     FramePosX = 0,
     FramePosY = 0,
     displayPassMsg = true,
@@ -176,34 +188,89 @@ end
 
 -- Updates the karma leaderboard when called
 local function updateRaidList(printErrorOnNoRaid)
-    local raidSize = 0
+    local raidSize = GetNumGroupMembers()
+    local guildSize = GetNumGuildMembers()
     local raidListText = ""
     local karmaListText = ""
+    local guildListText = ""
     currentRaidKarma = {}
-    for rIx = 1, 40, 1 do
-        local name, rank, subgroup, level, class = GetRaidRosterInfo(rIx)
-        if name then
-            local playerRosterIx = findPlayerRosterIx(name)
-            if playerRosterIx > -1 then
-                local member = {name = name, karma = getKarma(playerRosterIx), class = class, eligble = 0}
-                table.insert(currentRaidKarma, member)
-                raidSize = raidSize + 1
-            end
-        end
-    end
+    currentGuildKarma = {}
 
-    table.sort(currentRaidKarma, function(a, b)
-        return a.karma > b.karma
-    end)
+    -- if raidSize < 1 then
+    --     if printErrorOnNoRaid then
+    --         klSay("Cannot show Karma frame, you are not in a raid or group.")
+    --     end
+    --     karmaFrame:Hide()
+    -- end
 
     if raidSize < 1 then
-        if printErrorOnNoRaid then
-            klSay("Cannot show Karma frame, you are not in a raid or group.")
-        end
-        karmaFrame:Hide()
-    end
+        for rIx = 1, GetNumGuildMembers(), 1 do
+            local name, _, _, _, class = GetGuildRosterInfo(rIx)
 
+            if name then
+                local member = {name = name, karma = getKarma(rIx), class = class, eligible = 0}
+                table.insert(currentGuildKarma, member)
+            end
+        end
+
+        table.sort(currentGuildKarma, function(a, b)
+            return a.karma > b.karma
+        end)
+
+        if frameHidden == false then
+            karmaFrame:Show();
+        end
+
+        for i = 1, GetNumGuildMembers(), 1 do
+
+            local member = currentGuildKarma[i];
+            local numberColor = 'FFFFFF';
+            if member.name == currentPlayer.name then
+                numberColor = '00FF00';
+            end
+            if member.karma > 0 then
+                member.name = strSplit(member.name, "-")
+                karmaListText = karmaListText ..'|cFF' .. numberColor ..tostring(member.karma) ..'|r\n'
+                --print(member.name, fullName)
+                guildListText = guildListText .. '|cFF'.. classColors[member.class:lower()].hex .. member.name[1] ..'\n|r';
+            else
+                guildSize = guildSize - 1
+            end
+        end
+
+        raidListFont:SetText(guildListText);
+        raidListFont:SetJustifyH("left");
+        raidListFont:SetTextColor(classColors.priest.r, classColors.priest.g, classColors.priest.b, 1);
+        raidListFont:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 12)
+
+        karmaListFont:SetText(karmaListText);
+        karmaListFont:SetJustifyH("right");
+        karmaListFont:SetTextColor(classColors.priest.r, classColors.priest.g, classColors.priest.b, 1);
+        karmaListFont:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 12)
+
+        raidListFont:Show();
+        karmaListFont:Show();
+        local pixels = raidListFont:GetStringHeight()
+        local newHeight = pixels + (pixels / guildSize)
+        karmaFrame:SetHeight(newHeight);
+    end
     if raidSize > 1 then
+        for rIx = 1, 40, 1 do
+            local name, rank, subgroup, level, class = GetRaidRosterInfo(rIx)
+            if name then
+                local playerRosterIx = findPlayerRosterIx(name)
+                if playerRosterIx > -1 then
+                    local member = {name = name, karma = getKarma(playerRosterIx), class = class, eligble = 0}
+                    table.insert(currentRaidKarma, member)
+                    raidSize = raidSize + 1
+                end
+            end
+        end
+
+        table.sort(currentRaidKarma, function(a, b)
+            return a.karma > b.karma
+        end)
+
         if frameHidden == false then
             karmaFrame:Show();
         end
@@ -224,14 +291,17 @@ local function updateRaidList(printErrorOnNoRaid)
         raidListFont:SetText(raidListText);
         raidListFont:SetJustifyH("left");
         raidListFont:SetTextColor(classColors.priest.r, classColors.priest.g, classColors.priest.b, 1);
+        raidListFont:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 12)
 
         karmaListFont:SetText(karmaListText);
         karmaListFont:SetJustifyH("right");
         karmaListFont:SetTextColor(classColors.priest.r, classColors.priest.g, classColors.priest.b, 1);
+        karmaListFont:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 12)
 
         raidListFont:Show();
         karmaListFont:Show();
-        local newHeight = raidSize * memberRowHeight + memberRowHeight * 2
+        local pixels = raidListFont:GetStringHeight()
+        local newHeight = pixels + (pixels / raidSize) * 1.5
         karmaFrame:SetHeight(newHeight);
     end
 end
@@ -251,7 +321,7 @@ end
 local function kRoll()
     loadMemberKarma(false)
     if currentPlayer.karma == 0 then
-        print("You have no Karma to use.")
+        klSay("You have no Karma to use.")
     else
         RandomRoll(currentPlayer.karma, 100 + currentPlayer.karma)
     end
@@ -303,7 +373,7 @@ end
 -- Checks player rank in their guild to prevent usage of certain commands
 local function isPlayerOfficer()
     if currentPlayer.rankIx > 1 then
-        print("You are not an Officer.")
+        klSay("You are not an Officer.")
         return false
     else
         return true
@@ -318,6 +388,75 @@ local function isPlayerLeader()
     end
 end
 
+local function canOpenRolls()
+    local result = getRaidRankStuff(UnitName("Player"))
+    result = strSplit(result,",")
+    if tonumber(result[1]) >= 1 and result[2] == "true" then
+        return true
+    else
+        return false
+    end
+end
+
+-- Opens rolling on an item
+function klItem(msg)
+    if canOpenRolls() then
+		if not rollsOpen then
+            maximizeRollFrame()
+			local chatMsg = rollMsg .. msg .. " with Karma."
+			item = msg
+			SendChatMessage(chatMsg, "RAID_WARNING")
+			rollsOpen = true
+		end
+    else
+        klSay("You must be in a |cff00FF96raid|r, a |cff00FF96loot master|r and, at |cff00FF96minimum|r, be a |cff00FF96raid assistant|r to use this command!")
+    end
+end
+
+-- Attempts to close rolling on an item
+local function klClose()
+    if canOpenRolls() then
+        if deadlock == true and rollsOpen == true then
+            local chatMsg = highestRoller .. " had the same roll! Please reroll!"
+            SendChatMessage(chatMsg, "RAID_WARNING")
+            highestRoll = 0
+            highestRoller = ""
+            rollers = {}
+        elseif highestRoll == 0 and rollsOpen == true then
+            local chatMsg = "KL: Nobody used their Karma! Please free roll for " .. item .. "."
+            SendChatMessage(chatMsg, "RAID_WARNING")
+        elseif rollsOpen == true then
+            rollsOpen = false
+            local chatMsg = highestRoller .. " has won " .. item .. " with a roll of " .. highestRoll .. "!"
+            SendChatMessage(chatMsg, "RAID_WARNING")
+            highestRoll = 0
+            highestRoller = ""
+            rollers = {}
+        else
+            klSay("There's nothing to close.")
+        end
+    else
+        klSay("You must be in a |cff00FF96raid|r, a |cff00FF96loot master|r and, at |cff00FF96minimum|r, be a |cff00FF96raid assistant|r to use this command!")
+    end
+end
+
+-- Builds and displays the loot roll frame when needed
+local function createButtonTooltips(frame, text, position, item)
+	frame:HookScript("OnEnter", function()
+		GameTooltip:SetOwner(frame, position)
+		if item then
+			GameTooltip:SetHyperlink(text)
+		else
+			GameTooltip:SetText(text)
+		end
+		GameTooltip:Show()
+	end)
+
+	frame:HookScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+end
+
 -- Registers events to be utilized later
 function karma_OnLoad(self, event, ...)
     self:RegisterEvent("ADDON_LOADED")
@@ -327,6 +466,7 @@ function karma_OnLoad(self, event, ...)
     self:RegisterEvent("CHAT_MSG_RAID_WARNING")
     self:RegisterEvent("CHAT_MSG_SYSTEM")
     self:RegisterEvent("PLAYER_LOGOUT")
+    self:RegisterEvent("LOOT_OPENED")
 end
 
 -- Event listeners
@@ -408,7 +548,7 @@ function karma_OnEvent(self, event, ...)
 				if rollsOpen == true then
 					local winnerIndex = findPlayerRosterIx(author)
 					if winnerIndex == -1 then
-						print("Could not find player by name: " .. author)
+						klSay("Could not find player by name: " .. author)
 						return
 					end
 					local currentK = getKarma(winnerIndex)
@@ -437,8 +577,8 @@ function karma_OnEvent(self, event, ...)
 								local recolorName = prependClassColor(highestRoller) .. ", " .. prependClassColor(author)
 								highestRollText:SetText("Highest Roll: \n|cffffffff" .. tostring(highestRoll) .. " - " .. recolorName)
 							end
-						elseif tonumber(rollMin) ~= 1 and tonumber(rollMax) ~= 100 then
-							if isPlayerLeader and scolding then
+						elseif tonumber(rollMin) ~= 1 or tonumber(rollMax) ~= 100 then
+							if canOpenRolls() and scolding then
 								local chatMsg = "Please don't attempt to use fake values when we are rolling for gear."
 								SendChatMessage(chatMsg, "WHISPER", nil, author)
 							end
@@ -487,13 +627,66 @@ function karma_OnEvent(self, event, ...)
 			KL_Settings.FramePosRelativePoint , _, _, KL_Settings.FramePosX, KL_Settings.FramePosY = karmaFrame:GetPoint(1)
 			_, _, _, KL_Settings.MinimapPosX, KL_Settings.MinimapPosY = KarmaLoot_MinimapButton:GetPoint(1)
 		end
+
+        --[[if event == "LOOT_OPENED" then
+            masterLootTicker = C_Timer.NewTicker(0.1, function()
+                if MasterLooterFrame:IsShown() then
+                    for i = 1, GetNumLootItems(), 1 do
+                        local link = GetLootSlotLink(i)
+                        local itemName = GetItemInfo(link)
+                        if itemName == LootFrame.selectedItemName then
+                            local openRollsButton = CreateFrame("Button", "openRollsButton", MasterLooterFrame, MasterLooterFrame)
+                            openRollsButton:Hide()
+                            openRollsButton:SetSize(20,20)
+                            openRollsButton:SetPoint("TOPRIGHT", 25, -10)
+                            openRollsButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/karmadiceup.blp")
+                            openRollsButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/karmadicehover.blp", "BLEND")
+                            openRollsButton:SetPushedTexture("Interface/Addons/KarmaLoot/textures/karmadicedown.blp")
+                            createButtonTooltips(openRollsButton, "Begin rolling on this item", "ANCHOR_TOP", false)
+                            openRollsButton:RegisterForClicks("AnyUp");
+                            openRollsButton:SetScript("OnClick", function()
+                                klItem(link)
+                            end)
+                            openRollsButton:Show()
+                            masterLootTicker:Cancel()
+                        end
+                    end
+                end
+        	end)
+        end]]
     end
 end
 
 -- Used to hide roll frame on a pass
-local function hideFrame()
+function hideFrame()
     rollFrame:Hide()
     passOnLoot()
+end
+
+function closeRollFrame()
+    rollFrame:Hide()
+end
+
+function maximizeRollFrame()
+    rollFrame:SetWidth(250)
+    rollFrame:SetHeight(40)
+    itemButton:Show()
+    itemNameText:Show()
+    optNeedButton:Show()
+    optGreedButton:Show()
+    optPassButton:Show()
+    highestRollText:SetPoint("CENTER", rollFrame, "BOTTOM", -15, 15)
+end
+
+function minimizeRollFrame()
+    rollFrame:SetWidth(100)
+    rollFrame:SetHeight(24)
+    itemButton:Hide()
+    itemNameText:Hide()
+    optNeedButton:Hide()
+    optGreedButton:Hide()
+    optPassButton:Hide()
+    highestRollText:SetPoint("CENTER", rollFrame, "BOTTOM", 0, 12)
 end
 
 -- Main entry point when WoW client is ready.
@@ -508,7 +701,7 @@ local function main()
     t:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Background.blp")
     t:SetAllPoints(karmaFrame)
     karmaFrame.texture = t
-    karmaFrame:SetPoint(KL_Settings.FramePosRelativePoint, KL_Settings.FramePosX, KL_Settings.FramePosY)
+    --karmaFrame:SetPoint("CENTER", "UIParent", 0, 0)
     karmaFrame:SetMovable(true)
     karmaFrame:EnableMouse(true)
     karmaFrame:RegisterForDrag("LeftButton")
@@ -519,6 +712,7 @@ local function main()
     local title = karmaFrame:CreateFontString("karmaTitle", "ARTWORK", "GameFontNormal")
     title:SetPoint("CENTER", "karmaFrame", "TOP", 0, -10)
     title:SetText("Karma Leaderboard")
+    title:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 14)
     title:Show()
 
     -- Build member/karma list
@@ -528,32 +722,16 @@ local function main()
     karmaListFont:SetPoint("TOPRIGHT", -10, -20)
     updateRaidList()
     leaderBoardReady = true
+    karmaFrame:SetPoint(KL_Settings.FramePosRelativePoint, KL_Settings.FramePosX, KL_Settings.FramePosY)
 end
-
--- Builds and displays the loot roll frame when needed
-local function createButtonTooltips(frame, text, position, item)
-		frame:HookScript("OnEnter", function()
-			GameTooltip:SetOwner(frame, position)
-			if item then
-				GameTooltip:SetHyperlink(text)
-			else
-				GameTooltip:SetText(text)
-			end
-			GameTooltip:Show()
-		end)
-
-		frame:HookScript("OnLeave", function()
-			GameTooltip:Hide()
-		end)
-	end
 
 -- Builds the templates for the roll frame
 local function karmaRollFrame()
     -- Builds roll frame
     rollFrame:Hide()
 	rollFrame:SetFrameStrata("HIGH")
-	rollFrame:SetWidth(350)
-	rollFrame:SetHeight(80)
+	rollFrame:SetWidth(250)
+	rollFrame:SetHeight(40)
 	local t = rollFrame:CreateTexture(nil,"BACKGROUND")
 	t:SetAllPoints(rollFrame)
 	t:SetColorTexture(0,0,0,0.5)
@@ -561,57 +739,85 @@ local function karmaRollFrame()
 
     -- Builds Karma Roll button
 	local optNeedButton = CreateFrame("Button", "optNeedButton", rollFrame)
-    optNeedButton:SetSize(30, 30)
-    optNeedButton:SetPoint("BOTTOMRIGHT", -80, 20)
+    optNeedButton:SetSize(20, 20)
+    optNeedButton:SetPoint("BOTTOMRIGHT", -55, 5)
     optNeedButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/karmadiceup.blp")
     optNeedButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/karmadicehover.blp", "BLEND")
     optNeedButton:SetPushedTexture("Interface/Addons/KarmaLoot/textures/karmadicedown.blp")
-    optNeedButton:SetScript("OnClick", kRoll)
+    optNeedButton:SetScript("OnClick", function()
+        kRoll()
+        minimizeRollFrame()
+    end)
 
     createButtonTooltips(optNeedButton, "Karma Roll", "ANCHOR_TOP", false)
 
     -- Builds Normal Roll button
 	local optGreedButton = CreateFrame("Button", "optGreedButton", rollFrame)
-    optGreedButton:SetSize(30, 30)
-    optGreedButton:SetPoint("BOTTOMRIGHT", -45, 20)
+    optGreedButton:SetSize(20, 20)
+    optGreedButton:SetPoint("BOTTOMRIGHT", -30, 5)
     optGreedButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/normaldiceup.blp")
     optGreedButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/normaldicehover.blp", "BLEND")
     optGreedButton:SetPushedTexture("Interface/Addons/KarmaLoot/textures/normaldicedown.blp")
-    optGreedButton:SetScript("OnClick", normalRoll)
+    optGreedButton:SetScript("OnClick", function()
+        normalRoll()
+        minimizeRollFrame()
+    end)
 
     createButtonTooltips(optGreedButton, "Normal Roll", "ANCHOR_TOP", false)
 
     -- Builds Pass button
 	local optPassButton = CreateFrame("Button", "optPassButton", rollFrame)
-    optPassButton:SetSize(30, 30)
-    optPassButton:SetPoint("BOTTOMRIGHT", -10, 20)
+    optPassButton:SetSize(20, 20)
+    optPassButton:SetPoint("BOTTOMRIGHT", -5, 5)
     optPassButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/passup.blp")
     optPassButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/passhover.blp", "HOVER")
     optPassButton:SetPushedTexture("Interface/Addons/KarmaLoot/textures/passdown.blp")
-    optPassButton:SetScript("OnClick", hideFrame)
+    optPassButton:SetScript("OnClick", closeRollFrame)
 
     createButtonTooltips(optPassButton, "Pass", "ANCHOR_TOP", false)
 
     -- Builds Item Icon
 	itemButton = CreateFrame("Button", "itemButton", rollFrame)
-    itemButton:SetSize(50, 50)
-    itemButton:SetPoint("BOTTOMLEFT", 10, 10)
+    itemButton:SetSize(30, 30)
+    itemButton:SetPoint("BOTTOMLEFT", 5, 5)
 	itemButton.tex = itemButton:CreateTexture(nil, "ARTWORK")
 	itemButton.tex:SetAllPoints(itemButton)
 	itemButton.tex:SetTexCoord(.08, .92, .08, .92)
 
     -- Builds the Item Name
 	local itemNameText = rollFrame:CreateFontString("itemNameText", "ARTWORK", "GameFontNormal")
-	itemNameText:SetFont("Fonts\\FRIZQT__.TTF", 14)
-    itemNameText:SetPoint("CENTER", rollFrame, "TOP", 0,-10)
+    itemNameText:SetPoint("CENTER", rollFrame, "TOP", 20,-8)
+    itemNameText:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 20)
+    itemNameText:SetJustifyH("center");
     itemNameText:Show()
 
     -- Builds highest roller text
 	local highestRollText = rollFrame:CreateFontString("highestRollText", "ARTWORK", "GameFontNormal")
-	highestRollText:SetFont("Fonts\\FRIZQT__.TTF", 14)
-    highestRollText:SetPoint("CENTER", rollFrame, "TOP", -30, -45)
+
+    highestRollText:SetPoint("CENTER", rollFrame, "BOTTOM", -15, 15)
+    --highestRollText:SetFont("Interface/Addons/KarmaLoot/fonts/PTSansNarrow.ttf", 10)
     highestRollText:Show()
 
+    local minimizeButton = CreateFrame("Button", "minimizeButton", rollFrame)
+    minimizeButton:SetSize(12,12)
+    minimizeButton:SetPoint("TOPRIGHT", -24, 12)
+    minimizeButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/minimize.blp")
+    minimizeButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/minimizehover.blp", "BLEND")
+    minimizeButton:SetScript("OnClick", minimizeRollFrame)
+
+    local maximizeButton = CreateFrame("Button", "maximizeButton", rollFrame)
+    maximizeButton:SetSize(12,12)
+    maximizeButton:SetPoint("TOPRIGHT", -12, 12)
+    maximizeButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/maximize.blp")
+    maximizeButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/maximizehover.blp", "BLEND")
+    maximizeButton:SetScript("OnClick", maximizeRollFrame)
+
+    local closeButton = CreateFrame("Button", "closeButton", rollFrame)
+    closeButton:SetSize(12,12)
+    closeButton:SetPoint("TOPRIGHT", 0, 12)
+    closeButton:SetNormalTexture("Interface/Addons/KarmaLoot/textures/close.blp")
+    closeButton:SetHighlightTexture("Interface/Addons/KarmaLoot/textures/closehover.blp", "BLEND")
+    closeButton:SetScript("OnClick", closeRollFrame)
 end
 karmaRollFrame()
 
@@ -623,8 +829,26 @@ function karmaRollFrameDataLoad(itemId)
     waitTicker = C_Timer.NewTicker(0.1, function()
 		local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expacID, setID, isCraftingReagent = GetItemInfo(itemId)
 		if (itemName) then
+            if itemQuality == 0 then
+                itemName = "|cff" .. qualityColors["poor"].hex .. itemName .. "|r"
+            elseif itemQuality == 1 then
+                itemName = "|cff" .. qualityColors["common"].hex .. itemName .. "|r"
+            elseif itemQuality == 2 then
+                itemName = "|cff" .. qualityColors["uncommon"].hex .. itemName .. "|r"
+            elseif itemQuality == 3 then
+                itemName = "|cff" .. qualityColors["rare"].hex .. itemName .. "|r"
+            elseif itemQuality == 4 then
+                itemName = "|cff" .. qualityColors["epic"].hex .. itemName .. "|r"
+            elseif itemQuality == 5 then
+                itemName = "|cff" .. qualityColors["legendary"].hex .. itemName .. "|r"
+            end
+
 			itemButton.tex:SetTexture(GetItemIcon(itemId))
-			itemNameText:SetText(itemLink)
+			itemNameText:SetText(itemName)
+            if itemNameText:GetStringWidth(itemName) > 220 then
+                itemName = string.sub(itemName, 0, 45) .. "..."
+                itemNameText:SetText(itemName)
+            end
 			highestRollText:SetText("Highest Roll: \n|cffffffffNone")
 			createButtonTooltips(itemButton, itemLink, "ANCHOR_TOP", true)
 			rollFrame:Show()
@@ -662,7 +886,7 @@ local function init()
         if not frameReady or isInGuild then
             waitForGuildApiReady(0)
         else
-            print("Karma Loot loaded, but you are not in a guild.")
+            klSay("Karma Loot loaded, but you are not in a guild.")
         end
     end
 end
@@ -722,7 +946,7 @@ local function klWin(msg)
     if (not msg) then
         local targetName = GetUnitName("playertarget")
         if targetName == nil then
-            print("No name specified or target selected!")
+            klSay("No name specified or target selected!")
             return
         end
         msg = targetName
@@ -730,7 +954,7 @@ local function klWin(msg)
     loadMemberKarma(false)
     local winnerIndex = findPlayerRosterIx(msg)
     if winnerIndex == -1 then
-        print("Could not find player by name: " .. msg)
+        klSay("Could not find player by name: " .. msg)
         return
     end
 
@@ -738,7 +962,7 @@ local function klWin(msg)
     --print(tostring(pIx) .. ' -> ' ..tostring(currentK));
 
     if currentK == 0 then
-        print("Could not reduce Karma, " .. msg .. " Karma is already at zero.")
+        klSay("Could not reduce Karma, " .. msg .. " Karma is already at zero.")
         return
     end
 
@@ -748,55 +972,7 @@ local function klWin(msg)
     SendChatMessage(chatMsg, "RAID")
 end
 
-local function canOpenRolls()
-    local result = getRaidRankStuff(UnitName("Player"))
-    result = strSplit(result,",")
-    if tonumber(result[1]) >= 1 and result[2] == "true" then
-        return true
-    else
-        return false
-    end
-end
--- Opens rolling on an item
-local function klItem(msg)
-    if canOpenRolls() then
-		if not rollsOpen then
-			local chatMsg = rollMsg .. msg .. " with Karma."
-			item = msg
-			SendChatMessage(chatMsg, "RAID_WARNING")
-			rollsOpen = true
-		end
-    else
-        print("You must be in a |cff00FF96raid|r, a |cff00FF96loot master|r and, at |cff00FF96minimum|r, be a |cff00FF96raid assistant|r to use this command!")
-    end
-end
 
--- Attempts to close rolling on an item
-local function klClose()
-    if canOpenRolls() then
-        if deadlock == true and rollsOpen == true then
-            local chatMsg = highestRoller .. " had the same roll! Please reroll!"
-            SendChatMessage(chatMsg, "RAID_WARNING")
-            highestRoll = 0
-            highestRoller = ""
-            rollers = {}
-        elseif highestRoll == 0 and rollsOpen == true then
-            local chatMsg = "KL: Nobody used their Karma! Please free roll for " .. item .. "."
-            SendChatMessage(chatMsg, "RAID_WARNING")
-        elseif rollsOpen == true then
-            rollsOpen = false
-            local chatMsg = highestRoller .. " has won " .. item .. " with a roll of " .. highestRoll .. "!"
-            SendChatMessage(chatMsg, "RAID_WARNING")
-            highestRoll = 0
-            highestRoller = ""
-            rollers = {}
-        else
-            print("There's nothing to close.")
-        end
-    else
-        print("You must be in a |cff00FF96raid|r, a |cff00FF96loot master|r and, at |cff00FF96minimum|r, be a |cff00FF96raid assistant|r to use this command!")
-    end
-end
 
 -- Gets the version of everyone in the raid and tells you who's slacking
 local function klVersion()
@@ -809,17 +985,17 @@ local function klVersion()
         C_ChatInfo.SendAddonMessage("KarmaLoot", "Version?", "RAID")
         C_Timer.After(1,function()
         if table.concat(allRaidersTable) == '' then
-            print("Everyone is up to date!")
+            klSay("Everyone is up to date!")
         else
             for k, v in pairs(allRaidersTable) do
                 allRaidersTable[k] = prependClassColor(v)
             end
-            print("The following players are out of date or do not have the addon installed:\n" .. table.concat(allRaidersTable, '\n'))
+            klSay("The following players are out of date or do not have the addon installed:\n" .. table.concat(allRaidersTable, ', '))
             allRaidersTable = {}
         end
         end)
     else
-        print("You need to be in a raid to use this command.")
+        klSay("You need to be in a raid to use this command.")
     end
 end
 
@@ -838,7 +1014,7 @@ local function klBackups()
     for i = length, 5 + 1, -1 do
         backups[i] = nil
     end
-    print("Latest 5 backup dates: " .. table.concat(backups, ", ") .. "\nIf you need to restore a backup, use the |cffffa500'/klrestore DDMMYY'|r command.")
+    klSay("Latest 5 backup dates: " .. table.concat(backups, ", ") .. "\nIf you need to restore a backup, use the |cffffa500'/klrestore DDMMYY'|r command.")
 end
 
 -- The /kl command. Primary CLI entry point. Serves several sub commands.
@@ -855,8 +1031,6 @@ local function slashKl(msg)
         print("|cFF00FF96/kl|cFFFFFFFF show |cFFAAAAAA - Show the current raid's karma leaderboard.")
         print("|cFF00FF96/kl|cFFFFFFFF hide |cFFAAAAAA - Hide the raid leaderboard.")
         print("|cFF00FF96/kl|cFFFFFFFF check |cFFAAAAAA - Check your own Karma status.")
-        print("|cFF00FF96/kl|cFFFFFFFF mmshow |cFFAAAAAA - Shows the minimap button.")
-        print("|cFF00FF96/kl|cFFFFFFFF mmhide |cFFAAAAAA - Hides the minimap button.")
         print("|cFF00FF96/kl|cFFFFFFFF -v |cFFAAAAAA - Check everyones versions against yours.")
         print("|cFFFFFFFF - Officer commands: ")
         print("|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.")
@@ -867,7 +1041,7 @@ local function slashKl(msg)
     end
     if msg == "check" then
         loadMemberKarma(false)
-        print("You currently have " .. tostring(currentPlayer.karma) .. " karma to infuse.")
+        klSay("You currently have " .. tostring(currentPlayer.karma) .. " karma to infuse.")
     end
     if msg == "refresh" then
         loadMemberKarma(true)
@@ -907,15 +1081,6 @@ local function slashKl(msg)
         klClose()
     end
 
-    if cmd == "mmhide" then
-        KarmaLoot_MinimapButton:Hide()
-        mmHidden = true
-    end
-
-    if cmd == "mmshow" then
-        KarmaLoot_MinimapButton:Show()
-        mmHidden = false
-    end
 	-- Check versions of other members in your current raid.
     if cmd == "-v" then
         klVersion()
@@ -986,10 +1151,10 @@ end
 function KarmaLoot_MinimapButton_OnClick()
     if leaderBoardReady then
     	updateRaidList(true)
-    	if frameHidden and GetNumGroupMembers() > 1 then
+    	if frameHidden then
     		frameHidden = false
             updateRaidList(true)
-    	elseif not frameHidden then
+    	else
     		frameHidden = true
     		karmaFrame:Hide()
     	end
