@@ -36,7 +36,7 @@
 ### Fixed
 * Master looter begin rolls button
 * Added a limit to how many backups will be saved
-* Made guild board double-wide
+* Made guild board double-wide<br>
 ![image](https://user-images.githubusercontent.com/14336807/130700394-03488ef1-793e-4823-96e0-3931772e3431.png)
 
 
