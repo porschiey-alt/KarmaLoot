@@ -22,7 +22,26 @@
 * /kl [ITEM_LINK_HERE]: Open up a roll frame for everyone and allow competition for the linked item.<br>
 * /kl backups: Look up the names of the last 5 guild Karma backups.<br>
 * /kl -v: Check the versions of everyone in a raid and see who's slacking.<br>
+* /kl decay: Reduce the karma of everyone in your guild by 80%. 
 * /klrestore DDMMYY: Restore Karma from a backup.
+
+## [1.5] - 2021-08-24
+ 
+### Added
+* Master Looter Frame
+* Borders!
+* Send to Disenchanter Function
+* Karma decay command
+
+### Fixed
+* Master looter begin rolls button
+* Added a limit to how many backups will be saved
+* Made guild board double-wide
+![image](https://user-images.githubusercontent.com/14336807/130700394-03488ef1-793e-4823-96e0-3931772e3431.png)
+
+
+### Changed
+* Addon was getting cumbersome to navigate, so I have begun splitting everything up into different files. I can almost guarantee there will be bugs.
 
 ## [1.4] - 2021-08-20
  
