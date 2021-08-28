@@ -1,7 +1,7 @@
 ## Interface: 20501
 ## Title: KarmaLoot
 ## Author: Refúge-Whitemane and Fyfor-Whitemane
-## Version: 1.5
+## Version: 1.51
 ## SavedVariablesPerCharacter: KL_Karma_Backup, KL_Settings
 
 events.lua
