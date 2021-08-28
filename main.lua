@@ -340,7 +340,7 @@ local function getNameAndOfficerNote(index)
 end
 
 -- Opens rolling on an item
-function klItem(msg)
+function ns.klItem(msg)
     if ns.canOpenRolls() then
 		if not rollsOpen then
             maximizeRollFrame()
@@ -604,7 +604,7 @@ function karma_OnEvent(self, event, ...)
                             if itemName == LootFrame.selectedItemName then
                                 local lootIndex = i
                                 ns.openRollsButton:SetScript("OnClick", function()
-                                    klItem(itemLink)
+                                    ns.klItem(itemLink)
                                     ns.openRollsButton:Hide()
                                     closeKarmaButton:Show()
                                     closeNormalButton:Show()
