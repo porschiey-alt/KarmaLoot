@@ -1,12 +1,21 @@
 ## Interface: 20502
 ## Title: KarmaLoot
 ## Author: Refúge-Whitemane and Fyfor-Whitemane
-## Version: 1.52
-## SavedVariablesPerCharacter: KL_Karma_Backup, KL_Settings
+## Version: 2.0
+## SavedVariables: KarmaLootDB
+## SavedVariablesPerCharacter: KL_Karma_Backup, KL_Minimap_Button, KL_Settings
 
-events.lua
-functions.lua
-factory.lua
-commands.lua
-masterLooter.lua
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\lib-st\lib-st.xml
+modules/functions.lua
+modules/factory.lua
+modules/commands.lua
 karma.xml
