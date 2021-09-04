@@ -169,7 +169,7 @@ local karmaLootSettings = {
                     name = "Show Leaderboard on Login",
                     desc = nil,
                     type = "toggle",
-                    set = function(info,val) KarmaLoot.db.char.leaderBoardOnLogin = input end,
+                    set = function(info,val) KarmaLoot.db.char.leaderBoardOnLogin = val end,
                     get = function(info) return KarmaLoot.db.char.leaderBoardOnLogin end,
                     order = 1,
                     width = "full"
