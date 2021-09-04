@@ -11,7 +11,7 @@ local function isPlayerOfficer()
     end
 end
 
-local function isPlayerLeader()
+function ns.isPlayerLeader()
     if UnitIsGroupLeader("Player", LE_PARTY_CATEGORY_HOME) then
         return true
     else
@@ -206,6 +206,7 @@ function ns.slashKl(msg)
         print("|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.")
         print("|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.")
         print("|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.")
+        print("|cFF00FF96/kl|cFFFFFFFF decay|cFFAAAAAA - Reduce the entire guilds Karma by 80%.")
 		print("|cFF00FF96/kl|cFFFFFFFF backups|cFFAAAAAA - Prints a list of backup dates to be used for easy karma restoration.")
     end
     if msg == "check" then
@@ -218,11 +219,11 @@ function ns.slashKl(msg)
 
     if msg == "hide" then
         frameHidden = true
-        karmaFrame:Hide()
+        ns.KarmaLoot:updateFrame(true)
     end
     if msg == "show" then
         frameHidden = false
-        ns.updateRaidList(true)
+        ns.KarmaLoot:updateFrame(true)
     end
 
     local parts = ns.strSplit(msg)
@@ -261,7 +262,7 @@ function ns.slashKl(msg)
 	end
 
     if cmd == "decay" then
-        ns.klDecay()
+        ns.klDecay(false)
     end
 end
 
@@ -294,15 +295,36 @@ function ns.klRestore(msg)
 	end
 end
 
-function ns.klDecay(msg)
-    if not isPlayerOfficer then
+function ns.klDecay(command)
+    local guildmaster = IsGuildLeader()
+    print(guildmaster)
+    if not guildmaster then
         return
     end
-    if not decayConfirm then
-        ns.klSay("Are you sure you want to reduce everyone's Karma by 80%? Type the command in again once more to confirm.")
-    end
+    if command then
+        if not guildmaster then
+            return
+        end
+        if not decayConfirm then
+            ns.klSay("Are you sure you want to reduce everyone's Karma by 80%? Type the command in again once more to confirm.")
+        end
 
-    if decayConfirm then
+        if decayConfirm then
+            for i = 1, GetNumGuildMembers(), 1 do
+                local member = GetGuildRosterInfo(i)
+                if ns.getKarma(i) > 0 then
+                    decayedKarma = math.floor(ns.getKarma(i) * 0.2)
+                    GuildRosterSetOfficerNote(i, "k:" .. decayedKarma)
+                end
+            end
+            ns.klSay("Decay complete! If something went horribly wrong, please revert to a backup.")
+            decayConfirm = false
+        end
+        decayConfirm = true
+    elseif not command then
+        if not guildmaster then
+            return
+        end
         for i = 1, GetNumGuildMembers(), 1 do
             local member = GetGuildRosterInfo(i)
             if ns.getKarma(i) > 0 then
@@ -311,9 +333,7 @@ function ns.klDecay(msg)
             end
         end
         ns.klSay("Decay complete! If something went horribly wrong, please revert to a backup.")
-        decayConfirm = false
     end
-    decayConfirm = true
 end
 
 
