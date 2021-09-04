@@ -12,7 +12,8 @@ local icon = LibStub("LibDBIcon-1.0")
 local ScrollingTable = LibStub("ScrollingTable");
 KarmaLoot = LibStub("AceAddon-3.0"):NewAddon("KarmaLoot", "AceConsole-3.0")
 local KarmaLoot = KarmaLoot
-
+local _, ns = ...
+ns.KarmaLoot = KarmaLoot
 local selectedgroup
 local frame
 local select
@@ -838,6 +839,7 @@ function events:ADDON_LOADED(...)
     self:UnregisterEvent("ADDON_LOADED")
     frameReady = true
 end
+
 function events:CHAT_MSG_ADDON(...)
     local prefix, msg, type, sender = ...
     local realmName = "-" .. GetRealmName()
