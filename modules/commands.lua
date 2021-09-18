@@ -109,6 +109,35 @@ function ns.klSet(msg)
     SendChatMessage(chatMsg, "RAID")
 end
 
+-- Officers only. The /kl adjust command. Syntax: /kl adjust {playerName} {amount} -- Adjusts a players Karma by a specific delta, positive or negative.
+function ns.klAdjust(msg)
+    if not isPlayerOfficer() then
+        return
+    end
+    ns.loadMemberKarma(false)
+
+    local parts = ns.strSplit(msg)
+    local player = parts[2] .. "-" .. GetRealmName()
+    player = player:lower()
+    local amount = math.floor(tonumber(parts[3]))
+    local nameFound = false
+    for i = 1, GetNumGuildMembers() do
+        member = GetGuildRosterInfo(i)
+        member = member:lower()
+        if player == member then
+            nameFound = true
+            local adjustedKarma = ns.getKarma(i) + amount
+            ns.setKarma(i, adjustedKarma)
+            ns.klSay("Adjusted Karma for " .. GetGuildRosterInfo(i) .. ". New value: " .. adjustedKarma)
+            return
+        end
+    end
+    if nameFound == false then
+        ns.klSay("It seems like that name wasn't found! Make sure you spelled it correctly. You can shift-click a name in the guild roster to add it to your command if you need to.")
+    end
+end
+
+
 -- For officers and raid leaders. The /kl win command. Syntax: /kl win {playerName}. To be called when a player has won an item after performing an infused roll.
 function ns.klWin(msg)
     if not isPlayerLeader and not isPlayerOfficer then
@@ -197,12 +226,12 @@ function ns.slashKl(msg)
     if msg == "?" then
         print("|cFF00FF96KarmaLoot!|cFFAAAAAA Here's a list of options:")
         print("|cFF00FF96/kl|cFFFFFFFF roll |cFFAAAAAA - perform an infused roll.")
-        print("|cFF00FF96/kl|cFFFFFFFF show |cFFAAAAAA - Show the current raid's karma leaderboard.")
-        print("|cFF00FF96/kl|cFFFFFFFF hide |cFFAAAAAA - Hide the raid leaderboard.")
+        print("|cFF00FF96/kl|cFFFFFFFF toggle |cFFAAAAAA - Show/Hide the Karma leaderboard.")
         print("|cFF00FF96/kl|cFFFFFFFF check |cFFAAAAAA - Check your own Karma status.")
         print("|cFF00FF96/kl|cFFFFFFFF -v |cFFAAAAAA - Check everyones versions against yours.")
         print("|cFFFFFFFF - Officer commands: ")
         print("|cFF00FF96/kl|cFFFFFFFF earn <Amount>|cFFAAAAAA - Reward the entire raid some Karma.")
+        print("|cFF00FF96/kl|cFFFFFFFF adjust <Player> <Amount>|cFFAAAAAA - Adjust a players Karma by a specific amount.")
         print("|cFF00FF96/kl|cFFFFFFFF set <Player> <Amount>|cFFAAAAAA - Set a player to a specific amount.")
         print("|cFF00FF96/kl|cFFFFFFFF win [<Player> or Current Target]|cFFAAAAAA - Reward a player an item, halving their Karma.")
         print("|cFF00FF96/kl|cFFFFFFFF [ITEM_LINK_HERE]|cFFAAAAAA - Prompts the raid to roll on an item and unhides their KL GUI.")
@@ -217,13 +246,12 @@ function ns.slashKl(msg)
         ns.loadMemberKarma(true)
     end
 
-    if msg == "hide" then
-        frameHidden = true
-        karmaFrame:Hide()
+    if msg == "hide" or "show" then
+        ns.klSay("The show/hide commands are now defunct. Please utilize |cFF00FF96/kl toggle|r instead. You can also left-click the minimap button to perform the same function.")
     end
-    if msg == "show" then
-        frameHidden = false
-        ns.updateRaidList(true)
+
+    if msg == "toggle" then
+        ns.KarmaLoot:updateFrame(true)
     end
 
     local parts = ns.strSplit(msg)
@@ -235,6 +263,10 @@ function ns.slashKl(msg)
 
     if cmd == "set" then
         ns.klSet(msg)
+    end
+
+    if cmd == "adjust" then
+        ns.klAdjust(msg)
     end
 
     if cmd == "win" then

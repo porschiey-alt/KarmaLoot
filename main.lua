@@ -403,7 +403,7 @@ local function broadcastRefresh()
 end
 
 -- Parses Officer note string into a number (Karma)
-local function parseKarma(note)
+function ns.parseKarma(note)
     if note then
         if note == "" then
             return 0
@@ -426,7 +426,7 @@ end
 function ns.getKarma(rosterIndex)
 	if(rosterIndex) then
 		local name, rank, rankIndex, level, class, zone, note, officerNote = GetGuildRosterInfo(rosterIndex)
-		return parseKarma(officerNote)
+		return ns.parseKarma(officerNote)
 	end
 end
 
@@ -460,7 +460,7 @@ function ns.loadMemberKarma(showMsg)
     local memberCount = GetNumGuildMembers()
     for k = 1, memberCount, 1 do
         local name, rank, rankIndex, level, class, zone, note, officerNote = GetGuildRosterInfo(k)
-        local member = {name = name, karma = parseKarma(officerNote), rankIx = rankIndex}
+        local member = {name = name, karma = ns.parseKarma(officerNote), rankIx = rankIndex}
         if (name == playerName) then
             ns.currentPlayer = member
         end
