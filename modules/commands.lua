@@ -134,7 +134,7 @@ function ns.klAdjust(msg)
         end
     end
     if nameFound == false then
-        ns.klSay("It seems like that name wasn't found! Make sure you spelled it correctly. You can shift-click a name in the guild roster to add it to your command if you need to.")
+        ns.klSay("It seems like that name wasn't found in the guild roster! This error may be due to a non-guildie or incorrect spelling. You can shift-click a name in the guild roster to add it to your command if you need to.")
     end
 end
 
