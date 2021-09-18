@@ -126,9 +126,10 @@ function ns.klAdjust(msg)
         member = member:lower()
         if player == member then
             nameFound = true
+            local oldKarma = ns.getKarma(i)
             local adjustedKarma = ns.getKarma(i) + amount
             ns.setKarma(i, adjustedKarma)
-            ns.klSay("Adjusted Karma for " .. GetGuildRosterInfo(i) .. ". New value: " .. adjustedKarma)
+            ns.klSay("Adjusted Karma for " .. GetGuildRosterInfo(i) .. ". |cFF00FF96Old value:|r " .. oldKarma .. " | |cFF00FF96New value:|r " .. adjustedKarma .. ".")
             return
         end
     end
@@ -267,6 +268,7 @@ function ns.slashKl(msg)
 
     if cmd == "adjust" then
         ns.klAdjust(msg)
+        print(msg)
     end
 
     if cmd == "win" then

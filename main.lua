@@ -50,6 +50,7 @@ local restoreConfirm = false
 local rollFrame = CreateFrame("Frame",nil,UIParent)
 local leaderBoardOnLogin = true
 local wasFrameToggled = false
+local importString = ""
 
 local wasKarmaUsed = false
 local lastKarmaUser = ""
@@ -242,6 +243,43 @@ local karmaLootSettings = {
                     order = 25,
                     width = 3
                 },
+                input = {
+                    name = "String Export/Import",
+                    type = "input",
+                    get =
+                    function(info, input)
+                        local memberString = ""
+                        for i = 1, GetNumGroupMembers() do
+                            local member = GetRaidRosterInfo(i)
+                            if i == 1 then
+                                memberString = memberString .. member
+                            else
+                                memberString = memberString .. "," .. member
+                            end
+                        end
+                        return memberString
+                    end,
+                    set =
+                    function(info, input)
+                        if type(tonumber(input)) == "number" then
+                            if importString == "" then
+                                ns.klSay("Error: Make sure you import a string of names first!")
+                            else
+                                local members = ns.strSplit(importString, ",")
+                                for k, v in pairs(members) do
+                                    local msg = "adjust" .. " " .. v .. " " .. input
+                                    ns.klAdjust(msg)
+                                end
+                                importString = ""
+                            end
+                        else
+                            importString = input
+                            ns.klSay("Accepted input of the following string:\n" .. importString .. "\nNow, type in the amount of Karma to award to each member into the same input.")
+                        end
+                    end,
+                    order = 25,
+                    width = 3
+                },
             }
         },
         officerSettings = {
@@ -257,7 +295,7 @@ local karmaLootSettings = {
                     order = 25,
                     width = 2
                 },
-                input = {
+                input2 = {
                     name = "Restore Backup",
                     type = "input",
                     set =
