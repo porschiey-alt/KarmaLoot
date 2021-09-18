@@ -246,7 +246,7 @@ function ns.slashKl(msg)
         ns.loadMemberKarma(true)
     end
 
-    if msg == "hide" or "show" then
+    if msg == "hide" or msg == "show" then
         ns.klSay("The show/hide commands are now defunct. Please utilize |cFF00FF96/kl toggle|r instead. You can also left-click the minimap button to perform the same function.")
     end
 
