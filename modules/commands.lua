@@ -268,12 +268,10 @@ function ns.slashKl(msg)
 
     if cmd == "adjust" then
         ns.klAdjust(msg)
-        print(msg)
     end
 
     if cmd == "win" then
         ns.klWin(parts[2])
-		print(parts[2])
     end
 
     local itemId = GetItemInfoInstant(msg)
